@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+</head>
+<body>
+    <h1>Welcome to the Data Preprocessing Tool</h1>
+    <form action="/preprocess" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="text" name="excel_file_name" placeholder="Excel file name">
+        <!-- Add a button to navigate to the project directory -->
+        <button type="button" onclick="navigateToProjectDirectory()">Navigate to Project Directory</button>
+        <button type="submit">Upload & Preprocess</button>
+    </form>
+    <script>
+        function navigateToProjectDirectory() {
+            // Navigate to the project directory
+            window.location.href = '/project_directory';
+        }
+    </script>
+</body>
+</html>

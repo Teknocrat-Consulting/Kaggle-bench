@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Preprocessing Tool</title>
+    <!-- Google Font - Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Add your custom styles here */
+        body {
+            background: linear-gradient(45deg, #e66465, #9198e5);
+            font-family: 'Roboto', sans-serif; /* Applying Roboto font to the body */
+        }
+
+        .navbar {
+            background-color: #343a40; /* Dark background for navbar */
+        }
+
+        .navbar-brand {
+            color: #ffffff; /* White text for navbar brand */
+        }
+
+        .navbar-nav .nav-link {
+            color: #ffffff !important; /* White text for navbar links */
+        }
+
+        .card {
+            margin-top: 50px; /* Adjust margin-top as needed */
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #6c757d);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #6c757d, #007bff);
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8"> <!-- Increase column width for larger screens -->
+                <div class="card">
+                    <div class="card-body">
+                        <h1 class="card-title text-center">Data Preprocessing Tool</h1>
+                        <form action="/preprocess" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="file">Upload CSV:</label>
+                                <input type="file" class="form-control-file" id="file" name="file" accept=".csv">
+                            </div>
+                            <div class="form-group">
+                                <label for="excel_file_name">Enter the name for the final Excel file (without extension):</label>
+                                <input type="text" class="form-control" id="excel_file_name" name="excel_file_name">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Do you want to change the datatype?</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" id="change_datatype_yes" name="change_datatype" value="Yes">
+                                    <label class="form-check-label" for="change_datatype_yes">Yes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" id="change_datatype_no" name="change_datatype" value="No" checked>
+                                    <label class="form-check-label" for="change_datatype_no">No</label>
+                                </div>
+                            </div>
+
+                            <div id="datatype_fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="column_name">Provide the list of column names to change datatype (comma-separated):</label>
+                                    <input type="text" class="form-control" id="column_name" name="column_name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="new_datatype">Provide the list of datatypes to be changed in the same order as columns above (comma-separated - int,float,datetime,str,bool):</label>
+                                    <input type="text" class="form-control" id="new_datatype" name="new_datatype">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="target_column">Enter the target column:</label>
+                                <input type="text" class="form-control" id="target_column" name="target_column">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Preprocess Data</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and jQuery (optional, needed for some Bootstrap features) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        const changeDatatypeYes = document.getElementById("change_datatype_yes");
+        const changeDatatypeNo = document.getElementById("change_datatype_no");
+        const datatypeFields = document.getElementById("datatype_fields");
+
+        changeDatatypeYes.addEventListener("change", function() {
+            if (changeDatatypeYes.checked) {
+                datatypeFields.style.display = "block";
+            } else {
+                datatypeFields.style.display = "none";
+            }
+        });
+
+        changeDatatypeNo.addEventListener("change", function() {
+            if (changeDatatypeNo.checked) {
+                datatypeFields.style.display = "none";
+            } else {
+                datatypeFields.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

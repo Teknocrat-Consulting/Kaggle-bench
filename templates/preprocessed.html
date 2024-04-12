@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preprocessed Data</title>
+    <!-- Add Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Add your custom styles here */
+        body {
+            background: linear-gradient(45deg, #e66465, #9198e5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #6c757d);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #6c757d, #007bff);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #007bff);
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #007bff, #6c757d);
+        }
+    </style>
+</head>
+<body>
+    <div class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="text-center">
+            <h1 class="mt-5">Hurray! Data has been cleaned successfully</h1>
+            <!-- Button to show EDA -->
+            <form action="/show_eda" method="get">
+                <button type="submit" class="btn btn-primary mt-3">Show EDA</button>
+            </form>
+            <!-- Button to show log file -->
+            <form action="/logs" method="get">
+                <button type="submit" class="btn btn-secondary mt-3">Show Log File</button>
+            </form>
+            
+            <!-- Button to download files -->
+            <form action="/download" method="get">
+                <input type="hidden" name="folder_path" value="{{ name }}">
+                <button type="submit" class="btn btn-secondary mt-3">Download Files</button>
+            </form>
+        </div>
+    </div>
+    <!-- Add Bootstrap JS (Optional, for certain Bootstrap components) -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

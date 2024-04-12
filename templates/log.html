@@ -1,0 +1,41 @@
+<div class="card">
+    <div class="card-header" style="background: linear-gradient(45deg, #007bff, #6c757d); color: white;">
+        <h2>Log File</h2>
+    </div>
+    <div class="card-body" style="background: linear-gradient(45deg, #e66465, #9198e5);">
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Log File Content</title>
+            <!-- Add Bootstrap CSS -->
+            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+            <style>
+                /* Add your custom styles here */
+                body {
+                    background: linear-gradient(45deg, #e66465, #9198e5);
+                }
+
+                pre {
+                    background-color: rgba(255, 255, 255, 0.8);
+                    border-radius: 8px;
+                    padding: 10px;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(45deg, #007bff, #6c757d);
+                    border: none;
+                }
+
+                .btn-primary:hover {
+                    background: linear-gradient(45deg, #6c757d, #007bff);
+                }
+            </style>
+        </head>
+        <body>
+            <h1 class="text-center mt-3">Log File Content Display</h1>
+            <pre class="mt-3">{{ content }}</pre>
+            <button type="button" class="btn btn-primary mt-3" onclick="window.history.back()">Go Back</button>
+        </body>
+        </html>
+    </div>
+</div>
