@@ -188,7 +188,7 @@ def get_data_info():
             info_html = info_df.to_html(index=False)
             
             data_info = {
-                'head': df.head().to_html(),
+                'head': df.sample(5).to_html(),
                 'info': info_html
             }
             
