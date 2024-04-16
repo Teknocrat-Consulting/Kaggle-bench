@@ -1,14 +1,12 @@
-from flask import Flask, render_template, request, send_file, redirect
+from flask import Flask, render_template, request, send_file, redirect,url_for,redirect
 import pandas as pd
 from eda import Data_Preprocess
 from dtale.app import build_app
 from dtale.views import startup
 import os
+import io
 import zipfile
 from ydata_profiling import ProfileReport
-
-
-
 app = Flask(__name__)
 app1 = build_app(reaper_on=False)
 
@@ -16,19 +14,29 @@ app1 = build_app(reaper_on=False)
 
 name = ''
 
-@app.route('/')
+@app.route('/home')
 def home():
     return render_template('index.html')
 
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
     if request.method == 'POST':
-        if 'file' not in request.files:
-            return "No file part"
-        uploaded_file = request.files['file']
-        if uploaded_file.filename == '':
-            return "No selected file"
-        df = pd.read_csv(uploaded_file)
+        folder_name = "uploads"
+
+        # List all files in the uploads folder
+        files = os.listdir(folder_name)
+
+        # Find the first CSV file
+        csv_file = next((file for file in files if file.endswith('.csv')), None)
+
+        if csv_file:
+            print("CSV file found:", csv_file)
+            file_path = os.path.join(folder_name, csv_file)
+            print("File path:", file_path)
+        else:
+            print("No CSV file found in the 'uploads' folder.")
+
+        df = pd.read_csv(file_path)
         excel_file_name = request.form['excel_file_name']
         if not excel_file_name:
             return "Excel file name not provided"
@@ -46,6 +54,11 @@ def preprocess():
         return render_template('preprocessed.html')
     return "Something went wrong"
 
+
+
+
+
+
 # Utility function to read log file
 def read_log_file(log_file_path):
     try:
@@ -57,13 +70,7 @@ def read_log_file(log_file_path):
     except Exception as e:
         return f"Error reading log file: {str(e)}"
 
-# @app.route('/logs')
-# def show_logs():
-#     global name
-#     if not name:
-#         return "Name parameter not provided"
-#     log_content = read_log_file(f"{name}_logfile.log")
-#     return render_template('log.html', content=log_content)
+
 
 @app.route('/logs')
 def show_logs():
@@ -101,6 +108,38 @@ def download_folder():
         return send_file(f"{name}/"+zip_output_path, as_attachment=True)  # Send the zip file for download
     except FileNotFoundError:
         return "Folder not found", 404
+
+
+
+
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure the upload folder exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+@app.route('/')
+def index():
+    return render_template('upload.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return 'No file part'
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return 'No selected file'
+    
+    if file:
+        filename = file.filename
+        
+        print(filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        return redirect(url_for('home'))  # Redirect to the home route
+
 
 
 

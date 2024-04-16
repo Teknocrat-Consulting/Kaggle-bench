@@ -13,12 +13,16 @@
         body {
             background: linear-gradient(45deg, #e66465, #9198e5);
             font-family: 'Roboto', sans-serif; /* Applying Roboto font to the body */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
 
         .navbar {
             background-color: #343a40; /* Dark background for navbar */
         }
-
+ 
         .navbar-brand {
             color: #ffffff; /* White text for navbar brand */
         }
@@ -52,11 +56,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h1 class="card-title text-center">Data Preprocessing Tool</h1>
-                        <form action="/preprocess" method="post" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="file">Upload CSV:</label>
-                                <input type="file" class="form-control-file" id="file" name="file" accept=".csv">
-                            </div>
+                        <form action="/preprocess" method="post">
                             <div class="form-group">
                                 <label for="excel_file_name">Enter the name for the final Excel file (without extension):</label>
                                 <input type="text" class="form-control" id="excel_file_name" name="excel_file_name">
