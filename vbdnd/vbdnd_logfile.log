@@ -1,0 +1,25 @@
+2024-04-16 22:55:08,500 - INFO - Original shape: (1460, 81)
+2024-04-16 22:55:08,564 - INFO - Data information: None
+2024-04-16 22:55:08,577 - INFO - Dropped columns with high null values: Index(['Alley', 'PoolQC', 'Fence', 'MiscFeature'], dtype='object')
+2024-04-16 22:55:08,610 - INFO - Training set (X): (1168, 76)
+2024-04-16 22:55:08,611 - INFO - Testing set (X): (60, 76)
+2024-04-16 22:55:08,611 - INFO - Training set (y): (1168,)
+2024-04-16 22:55:08,611 - INFO - Testing set (y): (60,)
+2024-04-16 22:55:08,742 - INFO - Features with low variance dropped [['PoolArea', 'KitchenAbvGr', 'BsmtCond', 'BldgType', 'ScreenPorch', 'LandContour', 'LowQualFinSF', 'Functional', 'SaleType', 'Condition1', 'Street', 'GarageQual', 'BsmtHalfBath', 'CentralAir', 'LandSlope', 'RoofMatl', 'ExterCond', 'Electrical', 'GarageCond', 'BsmtFinSF2', '3SsnPorch', 'Heating', 'PavedDrive', 'SaleCondition', 'Utilities', 'Condition2', 'MiscVal', 'BsmtFinType2', 'EnclosedPorch']] with Threshold = 0.8
+2024-04-16 22:55:08,760 - INFO - Datatypes Result: {'object': ['MSZoning', 'LotShape', 'LotConfig', 'Neighborhood', 'HouseStyle', 'RoofStyle', 'Exterior1st', 'Exterior2nd', 'MasVnrType', 'ExterQual', 'Foundation', 'BsmtQual', 'BsmtExposure', 'BsmtFinType1', 'HeatingQC', 'KitchenQual', 'FireplaceQu', 'GarageType', 'GarageFinish'], 'numerical': ['Id', 'MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1', 'BsmtUnfSF', 'TotalBsmtSF', '1stFlrSF', '2ndFlrSF', 'GrLivArea', 'BsmtFullBath', 'FullBath', 'HalfBath', 'BedroomAbvGr', 'TotRmsAbvGrd', 'Fireplaces', 'GarageYrBlt', 'GarageCars', 'GarageArea', 'WoodDeckSF', 'OpenPorchSF', 'MoSold', 'YrSold'], 'datetime': []}
+2024-04-16 22:55:08,762 - INFO - Features with Null Columns: {'object': ['MasVnrType', 'BsmtQual', 'BsmtExposure', 'BsmtFinType1', 'FireplaceQu', 'GarageType', 'GarageFinish'], 'numerical': ['LotFrontage', 'MasVnrArea', 'GarageYrBlt']}
+2024-04-16 22:55:08,771 - INFO - Numerical Null values imputation done with Median
+2024-04-16 22:55:08,792 - INFO - Categorical Null values imputation done
+2024-04-16 22:55:08,873 - INFO - Outlier Imputation done with Winsorizer
+2024-04-16 22:55:09,385 - INFO - Categorical Encoding done
+2024-04-16 22:55:09,403 - INFO - Normalization done
+2024-04-16 22:55:09,404 - INFO - Training set (X): (1168, 164)
+2024-04-16 22:55:09,404 - INFO - Testing set (X): (60, 164)
+2024-04-16 22:55:09,404 - INFO - Training set (y): (1168,)
+2024-04-16 22:55:09,405 - INFO - Testing set (y): (60,)
+2024-04-16 22:55:09,899 - INFO - Preprocessing Done!!!
+2024-04-16 22:55:09,906 - INFO - 127.0.0.1 - - [16/Apr/2024 22:55:09] "POST /preprocess HTTP/1.1" 200 -
+2024-04-16 22:55:13,222 - INFO - 127.0.0.1 - - [16/Apr/2024 22:55:13] "GET /logs HTTP/1.1" 200 -
+2024-04-16 22:55:21,806 - INFO - 127.0.0.1 - - [16/Apr/2024 22:55:21] "GET /logs HTTP/1.1" 200 -
+2024-04-16 22:55:24,850 - INFO - 127.0.0.1 - - [16/Apr/2024 22:55:24] "GET /logs HTTP/1.1" 200 -
+2024-04-16 22:55:27,432 - INFO - 127.0.0.1 - - [16/Apr/2024 22:55:27] "GET /logs HTTP/1.1" 200 -
