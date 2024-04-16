@@ -1,0 +1,18 @@
+2024-04-16 10:55:54,922 - INFO - Original shape: (150, 5)
+2024-04-16 10:55:54,937 - INFO - Data information: None
+2024-04-16 10:55:54,957 - INFO - Training set (X): (120, 4)
+2024-04-16 10:55:54,957 - INFO - Testing set (X): (30, 4)
+2024-04-16 10:55:54,957 - INFO - Training set (y): (120,)
+2024-04-16 10:55:54,958 - INFO - Testing set (y): (30,)
+2024-04-16 10:55:54,986 - INFO - Features with high correlation dropped [['petal_width']] with Threshold = 0.9
+2024-04-16 10:55:54,987 - INFO - Datatypes Result: {'object': [], 'numerical': ['sepal_length', 'sepal_width', 'petal_length'], 'datetime': []}
+2024-04-16 10:55:54,989 - INFO - Features with Null Columns: {'object': [], 'numerical': []}
+2024-04-16 10:55:55,013 - INFO - Outlier Imputation done with Winsorizer
+2024-04-16 10:55:55,024 - INFO - Normalization done
+2024-04-16 10:55:55,025 - INFO - Training set (X): (120, 3)
+2024-04-16 10:55:55,026 - INFO - Testing set (X): (30, 3)
+2024-04-16 10:55:55,026 - INFO - Training set (y): (120, 1)
+2024-04-16 10:55:55,026 - INFO - Testing set (y): (30, 1)
+2024-04-16 10:55:55,052 - INFO - Preprocessing Done!!!
+2024-04-16 10:55:55,069 - INFO - 127.0.0.1 - - [16/Apr/2024 10:55:55] "POST /preprocess HTTP/1.1" 200 -
+2024-04-16 10:56:36,657 - INFO - 127.0.0.1 - - [16/Apr/2024 10:56:36] "GET / HTTP/1.1" 200 -

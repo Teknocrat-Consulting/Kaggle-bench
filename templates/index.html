@@ -56,6 +56,8 @@
                 <div class="card">
                     <div class="card-body">
                         <h1 class="card-title text-center">Data Preprocessing Tool</h1>
+                        <button type="button" class="btn btn-info mb-3" id="showDataInfo">Info about Data</button> <!-- Button to show data info -->
+                        <div id="dataInfoContainer"></div> <!-- Container for displaying data info -->
                         <form action="/preprocess" method="post">
                             <div class="form-group">
                                 <label for="excel_file_name">Enter the name for the final Excel file (without extension):</label>
@@ -103,24 +105,17 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
-        const changeDatatypeYes = document.getElementById("change_datatype_yes");
-        const changeDatatypeNo = document.getElementById("change_datatype_no");
-        const datatypeFields = document.getElementById("datatype_fields");
+        const showDataInfoButton = document.getElementById("showDataInfo");
+        const dataInfoContainer = document.getElementById("dataInfoContainer");
 
-        changeDatatypeYes.addEventListener("change", function() {
-            if (changeDatatypeYes.checked) {
-                datatypeFields.style.display = "block";
-            } else {
-                datatypeFields.style.display = "none";
-            }
-        });
-
-        changeDatatypeNo.addEventListener("change", function() {
-            if (changeDatatypeNo.checked) {
-                datatypeFields.style.display = "none";
-            } else {
-                datatypeFields.style.display = "block";
-            }
+        showDataInfoButton.addEventListener("click", function() {
+            fetch('/get_data_info')  // Fetch data from Flask route
+                .then(response => response.json())
+                .then(data => {
+                    // Update HTML container with data received from the backend
+                    dataInfoContainer.innerHTML = "<h2>Data Info:</h2>" + data.info + "<h2>Data Head:</h2>" + data.head;
+                })
+                .catch(error => console.error('Error:', error));
         });
     </script>
 </body>

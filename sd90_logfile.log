@@ -1,0 +1,13 @@
+2024-04-16 13:20:34,696 - INFO - Training set (X): (120, 4)
+2024-04-16 13:20:34,696 - INFO - Testing set (X): (30, 4)
+2024-04-16 13:20:34,696 - INFO - Training set (y): (120,)
+2024-04-16 13:20:34,698 - INFO - Testing set (y): (30,)
+2024-04-16 13:20:34,728 - INFO - Features with high correlation dropped [['petal_width']] with Threshold = 0.9
+2024-04-16 13:20:34,728 - INFO - Datatypes Result: {'object': [], 'numerical': ['sepal_length', 'sepal_width', 'petal_length'], 'datetime': []}
+2024-04-16 13:20:34,730 - INFO - Features with Null Columns: {'object': [], 'numerical': []}
+2024-04-16 13:20:34,758 - INFO - Outlier Imputation done with Winsorizer
+2024-04-16 13:20:34,772 - INFO - Normalization done
+2024-04-16 13:20:34,773 - INFO - Training set (X): (120, 3)
+2024-04-16 13:20:34,773 - INFO - Testing set (X): (30, 3)
+2024-04-16 13:20:34,773 - INFO - Training set (y): (120, 1)
+2024-04-16 13:20:34,773 - INFO - Testing set (y): (30, 1)

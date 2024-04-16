@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, redirect,url_for,redirect
+from flask import Flask, render_template, request, send_file, redirect,url_for,redirect,jsonify
 import pandas as pd
 from eda import Data_Preprocess
 from dtale.app import build_app
@@ -164,6 +164,40 @@ def project_directory():
     project_directory_path = '/'
     # Redirect the user to the project directory
     return redirect(project_directory_path)
+
+
+
+@app.route('/get_data_info', methods=['GET'])
+def get_data_info():
+    try:
+        files = os.listdir(app.config['UPLOAD_FOLDER'])
+        csv_file = next((file for file in files if file.endswith('.csv')), None)
+        
+        if csv_file:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], csv_file)
+            df = pd.read_csv(file_path)
+            
+            # Extract column names and data types
+            info_df = pd.DataFrame({
+                'Column Name': df.columns,
+                'Data Type': df.dtypes
+            })
+            
+            # Convert info DataFrame to HTML
+            info_html = info_df.to_html(index=False)
+            
+            data_info = {
+                'head': df.head().to_html(),
+                'info': info_html
+            }
+            
+            return jsonify(data_info)
+        else:
+            return jsonify({'error': 'No CSV file found in the uploads folder'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
 
 
 if __name__ == "__main__":
