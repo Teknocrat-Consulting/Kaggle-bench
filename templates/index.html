@@ -17,6 +17,7 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            margin: 0; /* Remove default margin */
         }
 
         .navbar {
@@ -46,18 +47,28 @@
         .btn-primary:hover {
             background: linear-gradient(45deg, #6c757d, #007bff);
         }
+
+        @media (min-width: 768px) {
+            .col-md-8 {
+                max-width: 700px; /* Set maximum width for larger screens */
+            }
+        }
     </style>
 </head>
-<body>
+<body class="body"> 
     
-    <div class="container mt-4">
-        <div class="row justify-content-center">
-            <div class="col-md-8"> <!-- Increase column width for larger screens -->
-                <div class="card">
-                    <div class="card-body">
-                        <h1 class="card-title text-center">Data Preprocessing Tool</h1>
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+        <div class="row ">
+            <div class="col-md-4"> <!-- Increase column width for larger screens -->
+              
+                        <h2 class="card-title text-center">Data Preprocessing Tool</h2>
                         <button type="button" class="btn btn-info mb-3" id="showDataInfo">Info about Data</button> <!-- Button to show data info -->
-                        <div id="dataInfoContainer"></div> <!-- Container for displaying data info -->
+                        <div id="dataInfoContainer" class="row"> 
+                           
+                        </div> 
+                        <!-- Container for displaying data info -->
                         <form action="/preprocess" method="post">
                             <div class="form-group">
                                 <label for="excel_file_name">Enter the name for the final Excel file (without extension):</label>
@@ -75,7 +86,7 @@
                                     <label class="form-check-label" for="change_datatype_no">No</label>
                                 </div>
                             </div>
-
+                            
                             <div id="datatype_fields" style="display: none;">
                                 <div class="form-group">
                                     <label for="column_name">Provide the list of column names to change datatype (comma-separated):</label>
@@ -86,6 +97,7 @@
                                     <input type="text" class="form-control" id="new_datatype" name="new_datatype">
                                 </div>
                             </div>
+                            
 
                             <div class="form-group">
                                 <label for="target_column">Enter the target column:</label>
@@ -93,30 +105,69 @@
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Preprocess Data</button>
                         </form>
-                    </div>
-                </div>
+                  
             </div>
+
+        <div class="col-md-8">
+    <div class="row">
+        <div class="col-md-6 text-center" style="max-height: 80vh; overflow: auto;" id="dvCSVHead">
+            <!-- Your table content for dvCSVHead -->
+        </div>
+        <div class="col-md-6 text-center" style="overflow: auto;"  id="dvCSVBody">
+            <!-- Your table content for dvCSVBody -->
         </div>
     </div>
+</div>
 
+
+  </div>
+    </div>
+</div>
+</div>
     <!-- Bootstrap JS and jQuery (optional, needed for some Bootstrap features) -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
     <script>
         const showDataInfoButton = document.getElementById("showDataInfo");
         const dataInfoContainer = document.getElementById("dataInfoContainer");
-
+const dvCSVHead = document.getElementById("dvCSVHead");
+const dvCSVBody = document.getElementById("dvCSVBody");
         showDataInfoButton.addEventListener("click", function() {
             fetch('/get_data_info')  // Fetch data from Flask route
                 .then(response => response.json())
                 .then(data => {
+                    debugger;
+                    dvCSVHead.innerHTML = data.info ;   dvCSVBody.innerHTML = data.head ;
                     // Update HTML container with data received from the backend
-                    dataInfoContainer.innerHTML = "<h2>Data Info:</h2>" + data.info + "<h2>Data Head:</h2>" + data.head;
+                   // dataInfoContainer.innerHTML = "<h3>Data Info:</h3>" + data.info + "<h3>Data Head:</h3>" + data.head;
                 })
                 .catch(error => console.error('Error:', error));
         });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+        var yesRadio = document.getElementById('change_datatype_yes');
+        var noRadio = document.getElementById('change_datatype_no');
+        var datatypeFields = document.getElementById('datatype_fields');
+
+        // Function to show or hide fields based on radio button selection
+        function toggleDatatypeFields() {
+            if (yesRadio.checked) {
+                datatypeFields.style.display = 'block';
+            } else {
+                datatypeFields.style.display = 'none';
+            }
+        }
+
+        // Initial call to toggleDatatypeFields to set initial display
+        toggleDatatypeFields();
+
+        // Add event listeners to radio buttons
+        yesRadio.addEventListener('change', toggleDatatypeFields);
+        noRadio.addEventListener('change', toggleDatatypeFields);
+    });
+
     </script>
 </body>
 </html>

@@ -121,6 +121,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 @app.route('/')
 def index():
+    clear_uploads_folder()
     return render_template('upload.html')
 
 @app.route('/upload', methods=['POST'])
@@ -187,7 +188,7 @@ def get_data_info():
             info_html = info_df.to_html(index=False)
             
             data_info = {
-                'head': df.head().to_html(),
+                'head': df.sample(5).to_html(),
                 'info': info_html
             }
             
@@ -197,8 +198,26 @@ def get_data_info():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+def clear_uploads_folder():
+    folder = "uploads"
+    # Check if the folder exists
+    if os.path.exists(folder):
+        # Get all files in the folder
+        files = os.listdir(folder)
+        for file_name in files:
+            file_path = os.path.join(folder, file_name)
+            # Check if it's a file (not a directory)
+            if os.path.isfile(file_path):
+                # Remove the file
+                os.remove(file_path)
+        print("All files in 'uploads' folder have been removed.")
+    else:
+        print("'uploads' folder does not exist.")
+
 
 
 
 if __name__ == "__main__":
     app.run(debug=True)
+    clear_uploads_folder()
+
