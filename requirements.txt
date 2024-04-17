@@ -3,4 +3,4 @@ pandas
 dtale
 feature-engine
 ydata-profiling
-scikit-learn 
+scikit-learn

@@ -1,5 +1,7 @@
 import logging
 import pandas as pd
+import re
+from datetime import datetime
 from sklearn.model_selection import train_test_split
 from feature_engine.imputation import MeanMedianImputer, CategoricalImputer
 from feature_engine.encoding import OneHotEncoder
@@ -9,7 +11,6 @@ from feature_engine.outliers import Winsorizer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
 from feature_engine.encoding import CountFrequencyEncoder
-
 import os
 
 
@@ -19,6 +20,11 @@ class Data_Preprocess():
         self.name = name
         self.df = df
         #self.df = self.df.sample(5000)
+        self.date_formats = (
+        '%b-%y','%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y', '%Y/%m/%d', '%B %d, %Y', '%d-%b-%Y','%b %d, %Y', '%Y-%m',         
+        '%m/%Y','%B %Y', '%Y-%m-%d %H:%M', '%d-%m-%Y %H:%M:%S','%m/%d/%Y %I:%M %p','%Y-%m-%dT%H:%M:%S''%a, %d %b %Y %H:%M:%S GMT', '%A, %B %d, %Y'   
+        )
+
        
         self.logger = self.setup_logger()
         self.log_file = os.path.join(os.getcwd(), self.name, f"{self.name}_logfile.log")
@@ -31,7 +37,7 @@ class Data_Preprocess():
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
         logging.info("Original shape: {}".format(self.df.shape))
-        logging.info("Data information: {}".format(self.df.info()))
+        #logging.info("Data information: {}".format(self.df.info()))
 
     def setup_logger(self):
         logger = logging.getLogger(__name__)
@@ -48,31 +54,50 @@ class Data_Preprocess():
         return logger
 
     def drop_columns_with_high_nan(self, df, threshold=70):
-        df_ = df.copy()
-        nan_percentages = df.isnull().mean() * 100
-        columns_to_drop = nan_percentages[nan_percentages > threshold].index
-        if columns_to_drop.any():
-            self.logger.info("Dropped columns with high null values: {}".format(columns_to_drop))
-            return df.drop(columns=columns_to_drop)
-        else:
-            return df_
+        try:
+            df_ = df.copy()
+            nan_percentages = df.isnull().mean() * 100
+            columns_to_drop = nan_percentages[nan_percentages > threshold].index
+            if columns_to_drop.any():
+                self.logger.info("Dropped columns with high null values: {}".format(columns_to_drop))
+                return df.drop(columns=columns_to_drop)
+            else:
+                return df_
+        except Exception as e:
+            self.logger.info(f"Error in drop_columns_with_high_nan : {e}")
+        
+    def parse_dates(self,date_str):
+        for fmt in self.date_formats:
+            try:
+                return pd.to_datetime(date_str, format=fmt)
+            except ValueError:
+                return pd.NaT 
+            
+    def clean_numeric_value(self,value):
+        # Remove commas and any non-numeric characters except dot, percent, and minus sign
+        value=str(value)
+        cleaned_value = re.sub(r'[^\d.]', '', value)
+        return str(cleaned_value)
+
 
     def change_datatype(self, df, column_name, new_datatype):
         try:
             if new_datatype == 'int':
+                df[column_name] =  df[column_name].apply(self.clean_numeric_value)
                 df[column_name] = pd.to_numeric(df[column_name], errors='coerce').astype(int)
             elif new_datatype == 'float':
+                df[column_name] =  df[column_name].apply(self.clean_numeric_value)
                 df[column_name] = pd.to_numeric(df[column_name], errors='coerce').astype(float)
             elif new_datatype == 'str':
                 df[column_name] = df[column_name].astype(str)
             elif new_datatype == 'bool':
                 df[column_name] = df[column_name].astype(bool)
             elif new_datatype == 'datetime':
-                df[column_name] = pd.to_datetime(df[column_name], errors='coerce')
+                df[column_name] =  df[column_name].apply(self.parse_dates)
             else:
                 logging.warning("Unsupported data type.")
-        except ValueError as e:
-            logging.error("Error converting column '{}' to {}: {}".format(column_name, new_datatype, e))
+        except Exception as e:
+            self.logger.info("Error converting column '{}' to {}: {}".format(column_name, new_datatype, e))
 
     def is_time_series(self,df, time_column=None, threshold=0.9):
         # Check if the dataset has a time column
@@ -105,7 +130,7 @@ class Data_Preprocess():
             xy_test.dropna(inplace=True)
             X_test = xy_test.drop(columns=[target_column]) 
             y_test = xy_test[target_column]
-            print("This is a Classification problem")
+            self.logger.info("This is a Classification problem")
             return X_train, X_test, y_train, y_test,False
     
         except ValueError as e:
@@ -115,43 +140,51 @@ class Data_Preprocess():
                 xy_test.dropna(inplace=True)
                 X_test = xy_test.drop(columns=[target_column]) 
                 y_test = xy_test[target_column]
-                print("This is a Regression problem")
+                self.logger.info("This is a Regression problem")
                 return X_train, X_test, y_train, y_test,True
             else:
-                print("Another ValueError occurred...")
+                self.logger.info("Another ValueError occurred in split_data")
 
     def low_variance_features(self, X_train, X_test, variables=None, threshold=0.80):
-        x_train = X_train.copy() 
-        x_test = X_test.copy()
-        earlier_cols = list(X_train.columns)
-        dcf = DropConstantFeatures(tol=threshold, missing_values='ignore', variables=variables)
-        X_train_ = dcf.fit_transform(X_train)
-        later_cols = list(X_train_.columns)
-        diff = list(set(earlier_cols) - set(later_cols))
-        if len(diff) > 0:
-            X_test_ = X_test.drop(diff, axis=1)
-            self.logger.info(f"Features with low variance dropped [{diff}] with Threshold = 0.8")
-            return X_train_, X_test_
-        else:
-            return x_train,x_test
-
-    def high_correlation_features(self, X_train, X_test, variables=None, threshold=0.9):
-        x_train = X_train.copy() 
-        x_test = X_test.copy()
-        earlier_cols = list(X_train.columns)
-        if len(self.column_datatypes(X_train,earlier_cols)['numerical'])>=2:
-            dcf = DropCorrelatedFeatures(threshold=threshold, missing_values='ignore', variables=variables)
+        try:
+            x_train = X_train.copy() 
+            x_test = X_test.copy()
+            earlier_cols = list(X_train.columns)
+            dcf = DropConstantFeatures(tol=threshold, missing_values='ignore', variables=variables)
             X_train_ = dcf.fit_transform(X_train)
             later_cols = list(X_train_.columns)
             diff = list(set(earlier_cols) - set(later_cols))
-            if len(diff) > 0 :
+            if len(diff) > 0:
                 X_test_ = X_test.drop(diff, axis=1)
-                self.logger.info(f"Features with high correlation dropped [{diff}] with Threshold = 0.9")
+                self.logger.info(f"Features with low variance dropped [{diff}] with Threshold = 0.8")
                 return X_train_, X_test_
             else:
                 return x_train,x_test
-        else:
-                return x_train,x_test
+        except Exception as e:
+            self.logger.info(f"Error in low_variance_features : {e}")
+            return x_train,x_test
+
+    def high_correlation_features(self, X_train, X_test, variables=None, threshold=0.9):
+        try:
+            x_train = X_train.copy() 
+            x_test = X_test.copy()
+            earlier_cols = list(X_train.columns)
+            if len(self.column_datatypes(X_train,earlier_cols)['numerical'])>=2:
+                dcf = DropCorrelatedFeatures(threshold=threshold, missing_values='ignore', variables=variables)
+                X_train_ = dcf.fit_transform(X_train)
+                later_cols = list(X_train_.columns)
+                diff = list(set(earlier_cols) - set(later_cols))
+                if len(diff) > 0 :
+                    X_test_ = X_test.drop(diff, axis=1)
+                    self.logger.info(f"Features with high correlation dropped [{diff}] with Threshold = 0.9")
+                    return X_train_, X_test_
+                else:
+                    return x_train,x_test
+            else:
+                    return x_train,x_test
+        except Exception as e:
+            self.logger.info(f"Error in high_correlation_features : {e}")
+            return x_train,x_test
 
     def column_datatypes(self, df, columns):
         result = {'object': [], 'numerical': []}
@@ -164,51 +197,63 @@ class Data_Preprocess():
         return result
 
     def numerical_missing_imputation(self, df, only_numerical, method="median"):
-        if len(only_numerical) > 0:
-            mmi = MeanMedianImputer(imputation_method=method, variables=only_numerical)
-            mmi.fit(df[only_numerical])
-            df[only_numerical] = mmi.transform(df[only_numerical])
-            self.logger.info("Numerical Null values imputation done with Median")
+        try:
+            if len(only_numerical) > 0:
+                mmi = MeanMedianImputer(imputation_method=method, variables=only_numerical)
+                mmi.fit(df[only_numerical])
+                df[only_numerical] = mmi.transform(df[only_numerical])
+                self.logger.info("Numerical Null values imputation done with Median")
+                return df
+        except Exception as e:
+            self.logger.info(f"Error in numerical_missing_imputation : {e}")
             return df
 
     def categorical_missing_imputation(self, df, dict_, count=10, fill_value=" "):
-        freq_cols = [x for x in dict_ if dict_[x] <= count]
-        empty_string_cols = [x for x in dict_ if dict_[x] > count]
-        #print("freq_cols : ",freq_cols)
-        #print("empty_string_cols : ", empty_string_cols)
+        try:
+            freq_cols = [x for x in dict_ if dict_[x] <= count]
+            empty_string_cols = [x for x in dict_ if dict_[x] > count]
+            #print("freq_cols : ",freq_cols)
+            #print("empty_string_cols : ", empty_string_cols)
 
-        if len(freq_cols) > 0 and len(empty_string_cols) > 0:
+            if len(freq_cols) > 0 and len(empty_string_cols) > 0:
 
-            ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
-            ci_freq.fit(df[freq_cols])
-            df[freq_cols] = ci_freq.transform(df[freq_cols])
+                ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
+                ci_freq.fit(df[freq_cols])
+                df[freq_cols] = ci_freq.transform(df[freq_cols])
 
-            ci_empty_string = CategoricalImputer(imputation_method='missing', fill_value=fill_value,
-                                                  variables=empty_string_cols)
-            ci_empty_string.fit(df[empty_string_cols])
-            df[empty_string_cols] = ci_empty_string.transform(df[empty_string_cols])
-            self.logger.info("Categorical Null values imputation done")
-            return df
+                ci_empty_string = CategoricalImputer(imputation_method='missing', fill_value=fill_value,
+                                                    variables=empty_string_cols)
+                ci_empty_string.fit(df[empty_string_cols])
+                df[empty_string_cols] = ci_empty_string.transform(df[empty_string_cols])
+                self.logger.info("Categorical Null values imputation done")
+                return df
 
-        elif len(freq_cols) > 0 and len(empty_string_cols) == 0:
-            ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
-            ci_freq.fit(df[freq_cols])
-            df[freq_cols] = ci_freq.transform(df[freq_cols])
-            self.logger.info("Categorical Null values imputation done")
-            return df
+            elif len(freq_cols) > 0 and len(empty_string_cols) == 0:
+                ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
+                ci_freq.fit(df[freq_cols])
+                df[freq_cols] = ci_freq.transform(df[freq_cols])
+                self.logger.info("Categorical Null values imputation done")
+                return df
 
-        elif len(empty_string_cols) > 0 and len(freq_cols) == 0:
-            ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
-            ci_freq.fit(df[freq_cols])
-            df[freq_cols] = ci_freq.transform(df[freq_cols])
-            self.logger.info("Categorical Null values imputation done")
+            elif len(empty_string_cols) > 0 and len(freq_cols) == 0:
+                ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
+                ci_freq.fit(df[freq_cols])
+                df[freq_cols] = ci_freq.transform(df[freq_cols])
+                self.logger.info("Categorical Null values imputation done")
+                return df
+        except Exception as e:
+            self.logger.info(f"Error in categorical_missing_imputation : {e}")
             return df
 
     def outlier_imputation(self, df, outliers_list):
-        wz = Winsorizer(capping_method='gaussian', tail='both', fold=3, variables=outliers_list)
-        wz.fit(df[outliers_list])
-        df[outliers_list] = wz.transform(df[outliers_list])
-        return df
+        try:
+            wz = Winsorizer(capping_method='gaussian', tail='both', fold=3, variables=outliers_list)
+            wz.fit(df[outliers_list])
+            df[outliers_list] = wz.transform(df[outliers_list])
+            return df
+        except Exception as e:
+            self.logger.info(f"Error in outlier_imputation : {e}")
+            return df
 
     def category_encode_dict(self, X_train):
         result = {'object': [], 'numerical': [], 'datetime': []}
@@ -223,84 +268,101 @@ class Data_Preprocess():
         return result
 
     def categorical_encoding(self, X_train, X_test, dict_, unique_count=30):
-        OHE_cols = [x for x in dict_ if dict_[x] <= unique_count]
-        frequency_count_cols = [x for x in dict_ if dict_[x] > unique_count]
+        try:
+            OHE_cols = [x for x in dict_ if dict_[x] <= unique_count]
+            frequency_count_cols = [x for x in dict_ if dict_[x] > unique_count]
 
-        # print("OHE_cols : ",OHE_cols)
-        # print("OHE_cols length: ",len(OHE_cols))
-        # print("frequency_count_cols : ",frequency_count_cols)
-        # print("frequency_count_cols length: ",len(frequency_count_cols))
+            # print("OHE_cols : ",OHE_cols)
+            # print("OHE_cols length: ",len(OHE_cols))
+            # print("frequency_count_cols : ",frequency_count_cols)
+            # print("frequency_count_cols length: ",len(frequency_count_cols))
 
-        if len(OHE_cols)>0 and len(frequency_count_cols)>0:
-            #print("1 called")
-            encoder_ohe = OneHotEncoder(variables=OHE_cols, ignore_format=True)
-            X_train = encoder_ohe.fit_transform(X_train)
-            X_test = encoder_ohe.transform(X_test)
+            if len(OHE_cols)>0 and len(frequency_count_cols)>0:
+                #print("1 called")
+                encoder_ohe = OneHotEncoder(variables=OHE_cols, ignore_format=True)
+                X_train = encoder_ohe.fit_transform(X_train)
+                X_test = encoder_ohe.transform(X_test)
 
-            encoder_freq = CountFrequencyEncoder(encoding_method='frequency', variables=frequency_count_cols,
-                                                 ignore_format=True)
-            X_train = encoder_freq.fit_transform(X_train)
-            X_test = encoder_freq.transform(X_test)
-            self.logger.info("Categorical Encoding done")
-            return X_train,X_test
+                encoder_freq = CountFrequencyEncoder(encoding_method='frequency', variables=frequency_count_cols,
+                                                    ignore_format=True)
+                X_train = encoder_freq.fit_transform(X_train)
+                X_test = encoder_freq.transform(X_test)
+                self.logger.info("Categorical Encoding done")
+                return X_train,X_test
 
-        elif len(frequency_count_cols) > 0 and len(OHE_cols) == 0:
-            #print("2 called")
-            encoder_freq = CountFrequencyEncoder(encoding_method='frequency', variables=frequency_count_cols,
-                                                 ignore_format=True)
-            X_train = encoder_freq.fit_transform(X_train)
-            X_test = encoder_freq.transform(X_test)
-            self.logger.info("Categorical Encoding done")
-            return X_train,X_test
+            elif len(frequency_count_cols) > 0 and len(OHE_cols) == 0:
+                #print("2 called")
+                encoder_freq = CountFrequencyEncoder(encoding_method='frequency', variables=frequency_count_cols,
+                                                    ignore_format=True)
+                X_train = encoder_freq.fit_transform(X_train)
+                X_test = encoder_freq.transform(X_test)
+                self.logger.info("Categorical Encoding done")
+                return X_train,X_test
 
-        elif len(OHE_cols) > 0 and len(frequency_count_cols) == 0:
-           # print("3 called")
-            encoder_ohe = OneHotEncoder(variables=OHE_cols, ignore_format=True)
-            X_train = encoder_ohe.fit_transform(X_train)
-            X_test = encoder_ohe.transform(X_test)
-            self.logger.info("Categorical Encoding done")
-            return X_train,X_test
-
+            elif len(OHE_cols) > 0 and len(frequency_count_cols) == 0:
+            # print("3 called")
+                encoder_ohe = OneHotEncoder(variables=OHE_cols, ignore_format=True)
+                X_train = encoder_ohe.fit_transform(X_train)
+                X_test = encoder_ohe.transform(X_test)
+                self.logger.info("Categorical Encoding done")
+                return X_train,X_test
+        except Exception as e:
+            self.logger.info(f"Error in categorical_encoding : {e}")
+            return X_train,X_test    
+        
 
     def cyclical_encoding(self, Xy_train, Xy_test, date_col, target_column):
-        Xy_train["Month"] = pd.DatetimeIndex(Xy_train[date_col]).month
-        Xy_train["Day"] = pd.DatetimeIndex(Xy_train[date_col]).day
+        try:
+            Xy_train["Month"] = pd.DatetimeIndex(Xy_train[date_col]).month
+            Xy_train["Day"] = pd.DatetimeIndex(Xy_train[date_col]).day
 
-        Xy_test["Month"] = pd.DatetimeIndex(Xy_test[date_col]).month
-        Xy_test["Day"] = pd.DatetimeIndex(Xy_test[date_col]).day
+            Xy_test["Month"] = pd.DatetimeIndex(Xy_test[date_col]).month
+            Xy_test["Day"] = pd.DatetimeIndex(Xy_test[date_col]).day
 
-        Xy_train.dropna(subset=[date_col], inplace=True)
-        Xy_test.dropna(subset=[date_col], inplace=True)
+            Xy_train.dropna(subset=[date_col], inplace=True)
+            Xy_test.dropna(subset=[date_col], inplace=True)
 
-        X_train = Xy_train.drop(columns=[target_column])
-        y_train = Xy_train[target_column]
+            X_train = Xy_train.drop(columns=[target_column])
+            y_train = Xy_train[target_column]
 
-        X_test = Xy_test.drop(columns=[target_column])
-        y_test = Xy_test[target_column]
+            X_test = Xy_test.drop(columns=[target_column])
+            y_test = Xy_test[target_column]
 
-        cyclical = CyclicalFeatures(variables=["Month", "Day"], drop_original=True)
-        X_train = cyclical.fit_transform(X_train)
-        X_test = cyclical.transform(X_test)
+            cyclical = CyclicalFeatures(variables=["Month", "Day"], drop_original=True)
+            X_train = cyclical.fit_transform(X_train)
+            X_test = cyclical.transform(X_test)
 
-        return X_train, X_test, y_train, y_test
+            return X_train, X_test, y_train, y_test
+        
+        except Exception as e:
+            self.logger.info(f"Error in cyclical_encoding : {e}")
+            return None
 
     def scale_features(self, X_train, X_test, features, method='normalization'):
-        if method == 'normalization':
-            scaler = MinMaxScaler()
-        elif method == 'standardization':
-            scaler = StandardScaler()
-        else:
-            raise ValueError("Unsupported scaling method. Please use 'normalization' or 'standardization'.")
+        try:
+            if method == 'normalization':
+                scaler = MinMaxScaler()
+            elif method == 'standardization':
+                scaler = StandardScaler()
+            else:
+                raise ValueError("Unsupported scaling method. Please use 'normalization' or 'standardization'.")
 
-        X_train[features] = scaler.fit_transform(X_train[features])
-        X_test[features] = scaler.transform(X_test[features])
-        return X_train, X_test
+            X_train[features] = scaler.fit_transform(X_train[features])
+            X_test[features] = scaler.transform(X_test[features])
+            return X_train, X_test
+        except Exception as e:
+            self.logger.info(f"Error in scale_features : {e}")
+            return X_train, X_test
 
     def encode_target_variable(self, y_train, y_test):
-        label_encoder = LabelEncoder()
-        y_train_encoded = label_encoder.fit_transform(y_train)
-        y_test_encoded = label_encoder.transform(y_test)
-        return pd.DataFrame(y_train_encoded), pd.DataFrame(y_test_encoded)
+        try:
+            label_encoder = LabelEncoder()
+            y_train_encoded = label_encoder.fit_transform(y_train)
+            y_test_encoded = label_encoder.transform(y_test)
+            return pd.DataFrame(y_train_encoded), pd.DataFrame(y_test_encoded)
+        except Exception as e:
+            self.logger.info(f"Error in encode_target_variable : {e}")
+            return pd.DataFrame(y_train), pd.DataFrame(y_test)
 
     def run(self, change_datatype=False, column_name=None, new_datatype=None, target_column=None):
         # DROP features with high Nan
