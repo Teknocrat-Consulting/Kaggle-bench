@@ -69,9 +69,10 @@ class Data_Preprocess():
     def parse_dates(self,date_str):
         for fmt in self.date_formats:
             try:
-                return pd.to_datetime(date_str, format=fmt)
+                return pd.to_datetime(date_str, format=fmt, exact=False)
             except ValueError:
-                return pd.NaT 
+                continue  # Continue trying other formats
+        return pd.NaT 
             
     def clean_numeric_value(self,value):
         # Remove commas and any non-numeric characters except dot, percent, and minus sign
@@ -106,13 +107,14 @@ class Data_Preprocess():
                 raise ValueError(f"Time column '{time_column}' not found in the dataset.")
             else:
                 # Ensure time column is in datetime format
-                df[time_column] = pd.to_datetime(df[time_column])
+                #df[time_column] = pd.to_datetime(df[time_column])
                 # Check if data is ordered chronologically
-                is_ordered = df[time_column].is_monotonic_increasing
+                df1 = df.copy()
+                is_ordered = df1[time_column].is_monotonic_increasing
                 print(is_ordered)
                 # Check if data covers at least 90% of the time span (for stationarity)
-                time_span = df[time_column].max() - df[time_column].min()
-                coverage_ratio = df[time_column].nunique() / ((time_span.days + 1) if time_span.days > 0 else 1)
+                time_span = df1[time_column].max() - df1[time_column].min()
+                coverage_ratio = df1[time_column].nunique() / ((time_span.days + 1) if time_span.days > 0 else 1)
                 is_stationary = coverage_ratio >= threshold
                 print(is_stationary)
                 return is_ordered and not is_stationary
@@ -216,6 +218,7 @@ class Data_Preprocess():
             #print("empty_string_cols : ", empty_string_cols)
 
             if len(freq_cols) > 0 and len(empty_string_cols) > 0:
+                #print('1 called')
 
                 ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
                 ci_freq.fit(df[freq_cols])
@@ -229,6 +232,7 @@ class Data_Preprocess():
                 return df
 
             elif len(freq_cols) > 0 and len(empty_string_cols) == 0:
+                #print('2 called')
                 ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
                 ci_freq.fit(df[freq_cols])
                 df[freq_cols] = ci_freq.transform(df[freq_cols])
@@ -236,9 +240,11 @@ class Data_Preprocess():
                 return df
 
             elif len(empty_string_cols) > 0 and len(freq_cols) == 0:
-                ci_freq = CategoricalImputer(imputation_method='frequent', variables=freq_cols)
-                ci_freq.fit(df[freq_cols])
-                df[freq_cols] = ci_freq.transform(df[freq_cols])
+                #print('3 called')
+                ci_empty_string = CategoricalImputer(imputation_method='missing', fill_value=fill_value,
+                                                    variables=empty_string_cols)
+                ci_empty_string.fit(df[empty_string_cols])
+                df[empty_string_cols] = ci_empty_string.transform(df[empty_string_cols])
                 self.logger.info("Categorical Null values imputation done")
                 return df
         except Exception as e:
@@ -365,50 +371,57 @@ class Data_Preprocess():
             return pd.DataFrame(y_train), pd.DataFrame(y_test)
 
     def run(self, change_datatype=False, column_name=None, new_datatype=None, target_column=None):
-        # DROP features with high Nan
-        nan_dropped = self.drop_columns_with_high_nan(self.df)
+        try:
+            # DROP features with high Nan
+            nan_dropped = self.drop_columns_with_high_nan(self.df)
 
-        # Create a folder to store preprocessing results
-        folder_name = self.name.split('.')[0]  # Extracting name without extension
+            # Create a folder to store preprocessing results
+            folder_name = self.name.split('.')[0]  # Extracting name without extension
+            
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+            
+            # Change current working directory to the created folder
+            os.chdir(folder_name)
+
+            # Change Datatype
+            print("Starting Changing datatype process \n")
+            if change_datatype and column_name and new_datatype:
+                column_name = [i.strip() for i in column_name.split(',')]
+                new_datatype = [i.strip() for i in new_datatype.split(',')]
+                for cols, new in zip(column_name, new_datatype):
+                    self.change_datatype(nan_dropped, cols, new)
+
+                self.logger.info("New data information after changing datatypes: {}".format(nan_dropped.info()))
+            print("Completed Changing datatype process \n")
+
+            ## Check if timeseries data or not:
         
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
-        
-        # Change current working directory to the created folder
-        os.chdir(folder_name)
+            print("Starting checking if time series or not \n")
+            result_time = self.category_encode_dict(nan_dropped)
+            proceed_with_split = True
+            if len(result_time['datetime']) > 0:
+                date_to_use = ""
+                if len(result_time['datetime']) > 1:
+                    dict_count = dict(nan_dropped[result_time['datetime']].isnull().sum())
+                    min_key = min(dict_count, key=lambda k: dict_count[k])
+                    date_to_use += min_key
+                    date_to_use.strip()
 
-        # Change Datatype
-        if change_datatype and column_name and new_datatype:
-            column_name = [i.strip() for i in column_name.split(',')]
-            new_datatype = [i.strip() for i in new_datatype.split(',')]
-            for cols, new in zip(column_name, new_datatype):
-                self.change_datatype(nan_dropped, cols, new)
+                else:
+                    date_to_use += result_time['datetime'][0]
+                    date_to_use.strip()
+                print("Date used : ",date_to_use)
 
-            self.logger.info("New data information after changing datatypes: {}".format(nan_dropped.info()))
+                if self.is_time_series(nan_dropped,date_to_use) == True and len(date_to_use)>0:
+                    print("The dataset is timseries data. Preprocessing not available right now.")
+                    self.logger.info("The dataset is timseries data. Preprocessing not available right now.")
+                    proceed_with_split = False
 
-         ## Check if timeseries data or not:
-    
-        result_time = self.category_encode_dict(nan_dropped)
-        if len(result_time['datetime']) > 0:
-            date_to_use = ""
-            if len(result_time['datetime']) > 1:
-                dict_count = dict(X_train[result_time['datetime']].isnull().sum())
-                min_key = min(dict_count, key=lambda k: dict_count[k])
-                date_to_use += min_key
-                date_to_use.strip()
-
-            else:
-                date_to_use += result_time['datetime'][0]
-                date_to_use.strip()
-            print("date used : ",date_to_use)
-
-            if self.is_time_series(nan_dropped,date_to_use) == True and len(date_to_use)>0:
-                print("The dataset is timseries data. Preprocessing not available right now.")
-                self.logger.info("The dataset is timseries data. Preprocessing not available right now.")
-
-        else:
-        # Split the Data
-            if target_column:
+            if proceed_with_split and target_column:
+            # Split the Data
+                print("Dataset is not time series \n")
+                print("Starting Splitting data \n")
                 target_column = target_column.strip()
                 X_train, X_test, y_train, y_test,is_regression = self.split_data(nan_dropped, target_column, test_size=0.2)
                 self.logger.info("Training set (X): {}".format(X_train.shape))
@@ -418,105 +431,133 @@ class Data_Preprocess():
                 # EDA
                 train_eda = pd.concat([X_train, y_train], axis=1)
                 train_eda.to_csv('eda.csv', index=False)
+                print("Splitting data done and eda.csv saved \n")
 
-                #d = dtale.show(train_eda)
-                #d.open_browser()
-                #logging.info("EDA Completed, URL: {}".format(d._url))
+                    #d = dtale.show(train_eda)
+                    #d.open_browser()
+                    #logging.info("EDA Completed, URL: {}".format(d._url))
 
-            # Drop features with low variance
-            X_train, X_test = self.low_variance_features(X_train, X_test)
+                # Drop features with low variance
+                print("Starting features with low variance \n")
+                X_train, X_test = self.low_variance_features(X_train, X_test)
+                print("Completed features with low variance \n")
 
-            # Drop features with high correlation (Include categorical features also next)
-            X_train, X_test = self.high_correlation_features(X_train, X_test, threshold=0.9)
+                # Drop features with high correlation (Include categorical features also next)
+                print("Starting features with high correlation \n")
+                X_train, X_test = self.high_correlation_features(X_train, X_test, threshold=0.9)
+                print("Completed features with high correlation \n")
 
-            result = self.category_encode_dict(X_train)
-            self.logger.info("Datatypes Result: {}".format(result))
+                
+                result = self.category_encode_dict(X_train)
+                self.logger.info("Datatypes Result: {}".format(result))
 
-            null_cols = X_train.columns[X_train.isnull().any()].tolist()  # this returns all columns having null columns
-            impute_dict = self.column_datatypes(X_train, null_cols)
-            self.logger.info("Features with Null Columns: {}".format(impute_dict))
+                null_cols = X_train.columns[X_train.isnull().any()].tolist()  # this returns all columns having null columns
+                impute_dict = self.column_datatypes(X_train, null_cols)
+                self.logger.info("Features with Null Columns: {}".format(impute_dict))
 
-            # Impute numerical null values
-            if len(impute_dict['numerical']) > 0:
-                only_numerical = impute_dict['numerical']
-                X_train = self.numerical_missing_imputation(X_train, only_numerical, method="median")
+                # Impute numerical null values
+                if len(impute_dict['numerical']) > 0:
+                    print("Starting numerical null imputation \n")
+                    only_numerical = impute_dict['numerical']
+                    X_train = self.numerical_missing_imputation(X_train, only_numerical, method="median")
+                    print("Completed numerical null imputation \n")
+                #print("X_train shape : ",X_train.shape)
+                
+                # Impute categorical null values
+                if len(impute_dict['object']) > 0:
+                    print("Starting categorical null imputation \n")
+                    categorical_dict = dict(X_train[impute_dict['object']].isnull().sum() * 100 / len(X_train))
+                    X_train = self.categorical_missing_imputation(X_train, categorical_dict)
 
-            # Impute categorical null values
-            if len(impute_dict['object']) > 0:
-                categorical_dict = dict(X_train[impute_dict['object']].isnull().sum() * 100 / len(X_train))
-                X_train = self.categorical_missing_imputation(X_train, categorical_dict)
+                    print("Completed categorical null imputation \n")
 
-            # Outlier Imputation
-            if len(result['numerical']) > 0:
-                outliers_list = result["numerical"]
-                X_train = self.outlier_imputation(X_train, outliers_list)
-                self.logger.info("Outlier Imputation done with Winsorizer")
+                # Outlier Imputation
+                print("Starting Outlier impute \n")
+                if len(result['numerical']) > 0:
+                    outliers_list = result["numerical"]
+                    X_train = self.outlier_imputation(X_train, outliers_list)
+                    self.logger.info("Outlier Imputation done with Winsorizer")
 
-            # Categorical Encoding
-            if len(result['object']) > 0:
-                encode_dict = {}
-                for i in self.category_encode_dict(X_train)["object"]:
-                    encode_dict[i] = len(list(pd.unique(X_train[i])))
+                print("Completed Outlier impute \n")
 
-                X_train, X_test = self.categorical_encoding(X_train, X_test, encode_dict)
+                # Categorical Encoding
+                print("Starting Categorical Encoding \n")
+                if len(result['object']) > 0:
+                    encode_dict = {}
+                    for i in self.category_encode_dict(X_train)["object"]:
+                        encode_dict[i] = len(list(pd.unique(X_train[i])))
 
-            # CYCLICAL ENCODING
-            if len(result['datetime']) > 0:
-                date_to_use = ""
-                if len(result['datetime']) > 1:
-                    dict_count = dict(X_train[result['datetime']].isnull().sum())
-                    min_key = min(dict_count, key=lambda k: dict_count[k])
-                    date_to_use += min_key
-                    date_to_use.strip()
+                    X_train, X_test = self.categorical_encoding(X_train, X_test, encode_dict)
 
+                print("Completed Categorical Encoding \n")
+
+                # CYCLICAL ENCODING
+                
+                if len(result['datetime']) > 0:
+                    print("Starting CYCLICAL ENCODING \n")
+                    date_to_use = ""
+                    if len(result['datetime']) > 1:
+                        dict_count = dict(X_train[result['datetime']].isnull().sum())
+                        min_key = min(dict_count, key=lambda k: dict_count[k])
+                        date_to_use += min_key
+                        date_to_use.strip()
+
+                    else:
+                        date_to_use += result['datetime'][0]
+                        date_to_use.strip()
+
+                    target_column = list(pd.DataFrame(y_train).columns)[0]
+
+                    Xy_train = pd.concat([X_train, y_train], axis=1)
+                    Xy_test = pd.concat([X_test, y_test], axis=1)
+                    X_train, X_test, y_train, y_test = self.cyclical_encoding(Xy_train, Xy_test, date_to_use, target_column)
+
+                    self.logger.info("Cyclical Encoding done using {} column".format(date_to_use))
+                    print("Completed CYCLICAL ENCODING \n")
+
+                # Normalize data
+                if len(result['numerical']) > 0:
+                    print("Starting  Normalize data \n")
+                    X_train, X_test = self.scale_features(X_train, X_test, result['numerical'])
+                    self.logger.info("Normalization done")
+                    print("Completed Normalize data \n")
+
+                # Label encoding Target variable
+                print("Starting Label encoding Target variable \n")
+                if is_regression == False:
+                    y_train_encoded, y_test_encoded = self.encode_target_variable(y_train, y_test)
                 else:
-                    date_to_use += result['datetime'][0]
-                    date_to_use.strip()
+                    y_train_encoded, y_test_encoded = y_train, y_test
 
-                target_column = list(pd.DataFrame(y_train).columns)[0]
+                self.logger.info("Training set (X): {}".format(X_train.shape))
+                self.logger.info("Testing set (X): {}".format(X_test.shape))
+                self.logger.info("Training set (y): {}".format(y_train_encoded.shape))
+                self.logger.info("Testing set (y): {}".format(y_test_encoded.shape))
 
-                Xy_train = pd.concat([X_train, y_train], axis=1)
-                Xy_test = pd.concat([X_test, y_test], axis=1)
-                X_train, X_test, y_train, y_test = self.cyclical_encoding(Xy_train, Xy_test, date_to_use, target_column)
-
-                self.logger.info("Cyclical Encoding done using {} column".format(date_to_use))
-
-            # Normalize data
-            if len(result['numerical']) > 0:
-                X_train, X_test = self.scale_features(X_train, X_test, result['numerical'])
-                self.logger.info("Normalization done")
-
-            # Label encoding Target variable
-            if is_regression == False:
-                y_train_encoded, y_test_encoded = self.encode_target_variable(y_train, y_test)
-            else:
-                 y_train_encoded, y_test_encoded = y_train, y_test
-
-            self.logger.info("Training set (X): {}".format(X_train.shape))
-            self.logger.info("Testing set (X): {}".format(X_test.shape))
-            self.logger.info("Training set (y): {}".format(y_train_encoded.shape))
-            self.logger.info("Testing set (y): {}".format(y_test_encoded.shape))
+                print("Completed Label encoding Target variable \n")
 
 
-            # Save to CSV file
-            self.df.to_csv(f'{self.name}', index=False)
-            X_train.to_csv(f'X_train.csv', index=False)
-            y_train_encoded.to_csv(f'y_train.csv', index=False)
-            X_test.to_csv(f'X_test.csv', index=False)
-            y_test_encoded.to_csv(f'y_test.csv', index=False)
+                # Save to CSV file
+                print("Starting Saving files \n")
+                self.df.to_csv(f'{self.name}', index=False)
+                X_train.to_csv(f'X_train.csv', index=False)
+                y_train_encoded.to_csv(f'y_train.csv', index=False)
+                X_test.to_csv(f'X_test.csv', index=False)
+                y_test_encoded.to_csv(f'y_test.csv', index=False)
 
+                current_file_path = os.path.abspath(__file__)
+                # Navigate to the parent directory (one level up)
+                project_directory = os.path.dirname(current_file_path)
+                print("Completed Saving files \n")
 
+                # Now you're in the project directory
+                print("Project directory:", project_directory)
             
-
-            current_file_path = os.path.abspath(__file__)
-            # Navigate to the parent directory (one level up)
-            project_directory = os.path.dirname(current_file_path)
-
-            # Now you're in the project directory
-            print("Project directory:", project_directory)
-
-         
-            logging.info("Preprocessing Done!!!")
-            print("Preprocessing Done!!!")
+                logging.info("Preprocessing Done!!!")
+                print("Preprocessing Done!!!")
+        
+        except Exception as e:
+            self.logger.info(f"Error in run function : {e}")
+            print(f"Error in run function : {e}")
 
 
